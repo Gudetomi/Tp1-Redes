@@ -4,15 +4,10 @@
 #include <string.h>
 #include <sys/socket.h>
 
-#include <client.h>
-
-#define MAX 80
-#define PORT 8080
-#define SA struct sockaddr
+#include "client.h"
 
    
-int main()
-{
+int main(){
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
    

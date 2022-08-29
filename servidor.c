@@ -6,14 +6,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include<servidor.h>
+#include "servidor.h"
 
-#define MAX 80
-#define PORT 8080
-#define SA struct sockaddr
-   
-
-   
 // Driver function
 int main()
 {
@@ -23,11 +17,11 @@ int main()
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        printf("socket creation failed...\n");
+        printf("Falha ao criar o socket...\n");
         exit(0);
     }
     else
-        printf("Socket successfully created..\n");
+        printf("Socket criado com sucesso...\n");
     bzero(&servaddr, sizeof(servaddr));
    
     // assign IP, PORT
