@@ -110,13 +110,13 @@ int main(int argc, char *argv[])
                 n = read(sockfd, buffer, 3);
                 cartas[i].valor = buffer[0];
                 cartas[i].naipe = buffer[1];
-                cartas[i].forca = buffer[2] - '0';
+                cartas[i].forca = buffer[2] - '0'; // transformar char em int
                 bzero(buffer,1024);
             }
             escolha = Escolhe_Carta(cartas,qtd); // Mostra as cartas pro cliente e faz ele decidir qual vai jogar
             buffer[0] = escolha.valor;
             buffer[1] = escolha.naipe;
-            buffer[2] = escolha.valor;
+            buffer[2] = escolha.forca + '0';
             n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
             n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
             free(cartas); // Desaloca espaço
