@@ -33,25 +33,30 @@ void error(const char *msg)
     exit(1);
 }
 
+
+void Escolhe_Naipe(Carta carta){
+    switch(carta.naipe){
+        case 'C': // Copas
+            printf("♥");
+            break;
+        case 'O': // Ouro
+            printf("♦");
+            break;
+        case 'E': // Espadas
+            printf("♠");
+            break;
+        case 'P': // Paus
+            printf("♣");
+            break;
+    }
+}
+
 void Print_Baralho(Carta *cartas){
     int i;
     for(i = 0; i < MAX_CARTAS; i++){
         printf("%c  ", cartas[i].valor);
-        switch(cartas[i].naipe){
-            case 'C': // Copas
-                printf("♥  ");
-                break;
-            case 'O': // Ouro
-                printf("♦  ");
-                break;
-            case 'E': // Espadas
-                printf("♠  ");
-                break;
-            case 'P': // Paus
-                printf("♣  ");
-                break;
-        }
-        printf("%i\n",cartas[i].forca);
+        Escolhe_Naipe(cartas[i]);
+        printf("  %i\n",cartas[i].forca);
     }
 }
 
@@ -130,20 +135,33 @@ int* Distribui_Cartas(){ // Escolhe as cartas que cada cliente vai receber (3 pr
 }
 
 int Ganhador(Carta carta1, Carta carta2, Carta carta3, Carta carta4){ // Função que define qual carta ganha, ou se da empate
-    int maior = 0;
+    int maior = 0, forca;
+
     // Define qual cliente usou a maior carta
-    maior = (carta1.forca > carta2.forca) ? 1 : 2;
-    maior = (maior > carta3.forca) ? maior : 3;
-    maior = (maior > carta4.forca) ? maior : 4;
+    if (carta1.forca >= carta2.forca){ // Se a carta 1 for mais forte que a 2
+        maior = 1;
+        forca = carta1.forca;
+    }else{ // Se a carta 2 for mais forte que a 1
+        maior = 2;
+        forca = carta2.forca;
+    }
+    if (forca < carta3.forca){ // Se a carta 3 for mais forte que a 1 e a 2
+        maior = 3;
+        forca = carta3.forca;
+    }
+    if (forca < carta4.forca){ // Se a carta 4 for mais forte que a 1, 2 e 3
+        maior = 4;
+        forca = carta4.forca;
+    }
 
     // Verifica se houve empate
-    if (maior == 1 && (maior == carta2.forca || maior == carta3.forca || maior == carta4.forca)){
+    if (maior == 1 && (forca == carta2.forca || forca == carta3.forca || forca == carta4.forca)){
         maior = 5;
-    }else if(maior == 2 && (maior == carta1.forca || maior == carta3.forca || maior == carta4.forca)){
+    }else if(maior == 2 && (forca == carta1.forca || forca == carta3.forca || forca == carta4.forca)){
         maior = 5;
-    }else if(maior == 3 && (maior == carta1.forca || maior == carta2.forca || maior == carta4.forca)){
+    }else if(maior == 3 && (forca == carta1.forca || forca == carta2.forca || forca == carta4.forca)){
         maior = 5;
-    }else if(maior == 4 && (maior == carta1.forca || maior == carta2.forca || maior == carta3.forca)){
+    }else if(maior == 4 && (forca == carta1.forca || forca == carta2.forca || forca == carta3.forca)){
         maior = 5;
     }
 
@@ -222,20 +240,22 @@ int main(int argc, char *argv[]){
             indice = vet[id * 3 + i]; // Pega a carta aleatória do cliente 
             buffer[0] = cartas[indice].valor;
             buffer[1] = cartas[indice].naipe;
-            buffer[2] = cartas[indice].forca + '0';
+            buffer[2] = cartas[indice].forca + '0'; // Transformar int em char
             n = write(newsockfd[id], buffer, 3); // Manda para o cliente suas cartas
         }
         bzero(buffer,1024);
         n = read(newsockfd[id], buffer, 3); // Lê qual carta o cliente escolheu jogar
         rodada_atual[id].valor = buffer[0];
         rodada_atual[id].naipe = buffer[1];
-        rodada_atual[id].forca = buffer[2] + '0';
-
+        rodada_atual[id].forca = buffer[2] - '0'; // Converte char em int
+        printf("%c %c %i\n",rodada_atual[id].valor, rodada_atual[id].naipe, rodada_atual[id].forca);
         n = read(newsockfd[id], buffer, 6); // Cliente avisando que terminou de Jogar
         if(id == TOTAL_CONECTIONS-1){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
             ganhador = Ganhador(rodada_atual[0],rodada_atual[1],rodada_atual[2],rodada_atual[3]);
             if (ganhador != 5){ // Se não der empate
-                printf("Quem ganhou a rodada foi o jogador %i, usando a carta %c, naipe %c com força %i.\n\n",ganhador, rodada_atual[ganhador].valor, rodada_atual[ganhador].naipe,rodada_atual[ganhador].forca);
+                printf("Quem ganhou a rodada foi o jogador %i, usando a carta %c, naipe ",ganhador, rodada_atual[ganhador-1].valor);
+                Escolhe_Naipe(rodada_atual[ganhador-1]);
+                printf(" com força %i.\n\n",rodada_atual[ganhador-1].forca);
             }else{ // Se der empate
             // TODO: Verificar o que fazer nesse caso, fala que deu empate e é isso, ou respeita o truco (maior na frente, etc...)
                 printf("Houve empate!\n\n");
