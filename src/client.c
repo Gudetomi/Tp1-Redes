@@ -24,32 +24,56 @@ typedef struct{ // Struct para guardar as cartas
 }Carta;
 
 
-void Print_Carta(Carta cartas){
-    printf("%c  ", cartas.valor);
-    switch(cartas.naipe){
-        case 'C': // Copas
-            printf("%s♥  %s", KRED, RESET);
+void Print_Carta(Carta *cartas, int tam){
+    char cor[4][11] = {"\033[0;31m", "\033[0m", "\033[0m", "\033[0;31m"};
+    char naipe[4][7] = {"\u2665", "\u2663", "\u2660", "\u2666"};
+    int map_naipes[3] = {0, 0, 0};
+
+    for (int i=0; i < tam; i++) {
+        switch (cartas[i].naipe) {
+            case 'C': // Copas
+                map_naipes[0] = 0;
+                break;
+            case 'P': // Paus
+                map_naipes[0] = 1;
+                break;
+            case 'E': // Espadas
+                map_naipes[0] = 2;
+                break;
+            case 'O': // Ouro
+                map_naipes[0] = 3;
+                break;
+        }
+    }
+
+    switch(tam){
+        case 1: // Copas
+            printf("  0\n");
+            printf(" ____\n");
+            printf("|%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]]);
+            printf("|  %c |\n", cartas[0].valor);
+            printf(" \u203E\u203E\u203E\u203E\n");
             break;
-        case 'O': // Ouro
-            printf("%s♦  %s", KRED, RESET);
+        case 2: // Ouro
+            printf("  0      1\n");
+            printf(" ____   ____\n");
+            printf("|%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]]);
+            printf("|  %c | |  %c |\n", cartas[0].valor, cartas[1].valor);
+            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
             break;
-        case 'E': // Espadas
-            printf("♠  ");
+        case 3: // Espadas
+            printf("  0      1      2  \n");
+            printf(" ____   ____   ____\n");
+            printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]]);
+            printf("|  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor);
+            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
             break;
-        case 'P': // Paus
-            printf("♣  ");
-            break;
-    printf("%i\n\n",cartas.forca);
     }
 }
 
 Carta Escolhe_Carta(Carta *cartas, int tam, int *opcao){
-    int i, valor;
-    for(i = 0; i < tam; i++){
-        printf("Opção %i: ",i);
-        Print_Carta(cartas[i]);
-        printf("\n");
-    }
+    int valor;
+    Print_Carta(cartas, tam);
     printf("Escolha o ID da carta que deseja jogar: ");
     scanf("%i", &valor);
     *opcao = valor;
