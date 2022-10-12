@@ -12,7 +12,9 @@ Wagner Lancetti - wlancetti@gmail.com
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
+#define KRED  "\x1B[31m"
+#define RESET "\x1B[0m"
 
 
 typedef struct{ // Struct para guardar as cartas
@@ -26,10 +28,10 @@ void Print_Carta(Carta cartas){
     printf("%c  ", cartas.valor);
     switch(cartas.naipe){
         case 'C': // Copas
-            printf("♥  ");
+            printf("%s♥  %s", KRED, RESET);
             break;
         case 'O': // Ouro
-            printf("♦  ");
+            printf("%s♦  %s", KRED, RESET);
             break;
         case 'E': // Espadas
             printf("♠  ");
@@ -55,14 +57,12 @@ Carta Escolhe_Carta(Carta *cartas, int tam, int *opcao){
 }
 
 
-void error(const char *msg)
-{
+void error(const char *msg){
     perror(msg);
     exit(0);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
