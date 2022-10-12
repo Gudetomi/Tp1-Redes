@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
     struct hostent *server;
     char buffer[1024];
 
-    Carta *cartas;
-    Carta escolha, mesa;
+    Carta *cartas, *mesa;
+    Carta escolha;
     int qtd, qtd_mesa, i;
 
     if (argc < 3) {
@@ -105,22 +105,29 @@ int main(int argc, char *argv[])
             bzero(buffer,1024);
             // Mostrar a mesa //
             n = read(sockfd, buffer, 4); // "Mesa"
-            printf("\n%s\n", buffer); // Printf do Antonio da Mesa
+            printf("\n%s\n", buffer);
+            /* Apaga a linha de cima (108)
+            if (strcmp(buffer, "Mesa") == 0){
+                // Printf do Antonio da palavra Mesa
+            }
+            */
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
             bzero(buffer, 1024);
             if(qtd_mesa != 0){ // Se houver cartas na mesa
+                mesa = (Carta*)calloc(qtd_mesa, sizeof(Carta));
                 for(i = 0; i < qtd_mesa; i++){
                     n = read(sockfd, buffer, 3);
-                    mesa.valor = buffer[0];
-                    mesa.naipe = buffer[1];
-                    mesa.forca = buffer[2] - '0'; // transformar char em int
-                    Print_Carta(mesa); // Mostrar as cartas pro cliente
+                    mesa[i].valor = buffer[0];
+                    mesa[i].naipe = buffer[1];
+                    mesa[i].forca = buffer[2] - '0'; // transformar char em int
+                    Print_Carta(mesa[i]); // Mostrar as cartas pro cliente
                     printf("\n");
-                    // Printf do antonio das cartas
                     bzero(buffer,1024);
                 }
+                // Printf do antonio das cartas (Apaga a chamada da função Print_Carta e do printf tambem dentro do for)
+                free(mesa);
                 printf("\n\n");
             }else{
                 printf("Mesa vazia!\n\n");
@@ -145,6 +152,7 @@ int main(int argc, char *argv[])
             buffer[2] = escolha.forca + '0';
             n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
             n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
+            
             free(cartas); // Desaloca espaço
             bzero(buffer,1024);
             printf("_________________________________________________________\n\n");
