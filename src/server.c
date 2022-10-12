@@ -305,7 +305,6 @@ int main(int argc, char *argv[]){
                 Escolhe_Naipe(rodada_atual[ganhador-1]);
                 printf("\n\n");
             }else{ // Se der empate
-            // TODO: Verificar o que fazer nesse caso, fala que deu empate e é isso, ou respeita o truco (maior na frente, etc...)
                 printf("Houve empate!\n\n");
             }
             for(i = 0; i < TOTAL_CONECTIONS; i++){ // Todos os clientes jogaram uma carta, reduzir uma pra cada
@@ -316,12 +315,14 @@ int main(int argc, char *argv[]){
             rodada_atual = (Carta*)calloc(4, sizeof(Carta));
             usadas = (Carta*)calloc(4, sizeof(Carta));
         }
-        
         CHANGE_PLAYER // Muda qual cliente irá jogar agora
-        
-
     }
+    // Limpa o espaço de memória
     free(cartas);
+    free(vet);
+    free(qtd);
+    free(rodada_atual);
+    free(usadas);
     for (i = 0; i < TOTAL_CONECTIONS; i++){ // Finaliza as conexões dos clientes
         close(newsockfd[i]);
     }
