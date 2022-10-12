@@ -41,16 +41,17 @@ void Print_Carta(Carta cartas){
     }
 }
 
-Carta Escolhe_Carta(Carta *cartas, int tam){
-    int i, opcao;
+Carta Escolhe_Carta(Carta *cartas, int tam, int *opcao){
+    int i, valor;
     for(i = 0; i < tam; i++){
         printf("Opção %i: ",i);
         Print_Carta(cartas[i]);
         printf("\n");
     }
     printf("Escolha o ID da carta que deseja jogar: ");
-    scanf("%i", &opcao);
-    return cartas[opcao];
+    scanf("%i", &valor);
+    *opcao = valor;
+    return cartas[*opcao];
 }
 
 
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
 
     Carta *cartas;
     Carta escolha;
-    int qtd, i;
+    int qtd, i, opcao = 0;
 
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
@@ -113,13 +114,15 @@ int main(int argc, char *argv[])
                 cartas[i].forca = buffer[2] - '0'; // transformar char em int
                 bzero(buffer,1024);
             }
-            escolha = Escolhe_Carta(cartas,qtd); // Mostra as cartas pro cliente e faz ele decidir qual vai jogar
+            escolha = Escolhe_Carta(cartas,qtd,&opcao); // Mostra as cartas pro cliente e faz ele decidir qual vai jogar
             buffer[0] = escolha.valor;
             buffer[1] = escolha.naipe;
             buffer[2] = escolha.forca + '0';
-            n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
+            buffer[3] = opcao + '0';
+            n = write(sockfd, buffer, 4); // Volta pro servidor qual carta foi escolhida
             n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
             free(cartas); // Desaloca espaço
+            bzero(buffer,1024);
             n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
         }
     }
