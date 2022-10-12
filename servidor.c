@@ -171,7 +171,7 @@ int Ganhador(Carta carta1, Carta carta2, Carta carta3, Carta carta4){ // Funçã
 
 int main(int argc, char *argv[]){
     int sockfd, portno, newsockfd[TOTAL_CONECTIONS];
-    int id = 0, i, indice;
+    int id = 0, i, indice, id_carta = 0;
     socklen_t clilen[TOTAL_CONECTIONS];
     char buffer[1024];
     struct sockaddr_in serv_addr, cli_addr[TOTAL_CONECTIONS];
@@ -237,25 +237,31 @@ int main(int argc, char *argv[]){
         indice = id*3; // Pega o ID do usuário que vai jogar (serve para pegar as 3 cartas aleatórias que caíram para o jogador)
         bzero(buffer,1024);
         for(i = 0; i < qtd[id]; i++){
-            indice = vet[id * 3 + i]; // Pega a carta aleatória do cliente 
-            buffer[0] = cartas[indice].valor;
-            buffer[1] = cartas[indice].naipe;
-            buffer[2] = cartas[indice].forca + '0'; // Transformar int em char
-            n = write(newsockfd[id], buffer, 3); // Manda para o cliente suas cartas
+            indice = vet[id * 3 + i]; // Pega a carta aleatória do cliente
+            if(indice != -1){
+                buffer[0] = cartas[indice].valor;
+                buffer[1] = cartas[indice].naipe;
+                buffer[2] = cartas[indice].forca + '0'; // Transformar int em char
+                n = write(newsockfd[id], buffer, 3); // Manda para o cliente suas cartas
+            }
         }
         bzero(buffer,1024);
-        n = read(newsockfd[id], buffer, 3); // Lê qual carta o cliente escolheu jogar
+        n = read(newsockfd[id], buffer, 4); // Lê qual carta o cliente escolheu jogar
         rodada_atual[id].valor = buffer[0];
         rodada_atual[id].naipe = buffer[1];
         rodada_atual[id].forca = buffer[2] - '0'; // Converte char em int
-        printf("%c %c %i\n",rodada_atual[id].valor, rodada_atual[id].naipe, rodada_atual[id].forca);
+        id_carta = buffer[3] - '0';
+        printf("%c %c %i %i\n",rodada_atual[id].valor, rodada_atual[id].naipe, rodada_atual[id].forca, id_carta);
         n = read(newsockfd[id], buffer, 6); // Cliente avisando que terminou de Jogar
         if(id == TOTAL_CONECTIONS-1){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
             ganhador = Ganhador(rodada_atual[0],rodada_atual[1],rodada_atual[2],rodada_atual[3]);
             if (ganhador != 5){ // Se não der empate
-                printf("Quem ganhou a rodada foi o jogador %i, usando a carta %c, naipe ",ganhador, rodada_atual[ganhador-1].valor);
+                printf("Quem ganhou a rodada foi o jogador %i, usando a carta: %c ",ganhador, rodada_atual[ganhador-1].valor);
                 Escolhe_Naipe(rodada_atual[ganhador-1]);
-                printf(" com força %i.\n\n",rodada_atual[ganhador-1].forca);
+                printf("\n\n");
+                for(i = 0; i < TOTAL_CONECTIONS; i++){ // Todos os clientes jogaram uma carta, reduzir uma pra cada
+                    qtd[i] -= 1;
+                }
             }else{ // Se der empate
             // TODO: Verificar o que fazer nesse caso, fala que deu empate e é isso, ou respeita o truco (maior na frente, etc...)
                 printf("Houve empate!\n\n");
@@ -263,6 +269,7 @@ int main(int argc, char *argv[]){
         }
         if (strcmp(buffer,"Joguei") == 0){ // Cliente avisa que já fez sua jogada
             n = write(newsockfd[id], "Wait", 4);
+            vet[id * 3 + id_carta] = -1; // remove aquela carta do cliente
             CHANGE_PLAYER // Muda qual cliente irá jogar agora
         }
 
