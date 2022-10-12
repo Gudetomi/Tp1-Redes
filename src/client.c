@@ -12,9 +12,7 @@ Wagner Lancetti - wlancetti@gmail.com
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
-#define KRED  "\x1B[31m"
-#define RESET "\x1B[0m"
+#include <netdb.h> 
 
 
 typedef struct{ // Struct para guardar as cartas
@@ -24,77 +22,54 @@ typedef struct{ // Struct para guardar as cartas
 }Carta;
 
 
-void Print_Carta(Carta *cartas, int tam){
-    char cor[4][11] = {"\033[0;31m", "\033[0m", "\033[0m", "\033[0;31m"};
-    char naipe[4][7] = {"\u2665", "\u2663", "\u2660", "\u2666"};
-    int map_naipes[3] = {0, 0, 0};
-
-    for (int i=0; i < tam; i++) {
-        switch (cartas[i].naipe) {
-            case 'C': // Copas
-                map_naipes[0] = 0;
-                break;
-            case 'P': // Paus
-                map_naipes[0] = 1;
-                break;
-            case 'E': // Espadas
-                map_naipes[0] = 2;
-                break;
-            case 'O': // Ouro
-                map_naipes[0] = 3;
-                break;
-        }
-    }
-
-    switch(tam){
-        case 1: // Copas
-            printf("  0\n");
-            printf(" ____\n");
-            printf("|%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]]);
-            printf("|  %c |\n", cartas[0].valor);
-            printf(" \u203E\u203E\u203E\u203E\n");
+void Print_Carta(Carta cartas){
+    printf("%c  ", cartas.valor);
+    switch(cartas.naipe){
+        case 'C': // Copas
+            printf("♥  ");
             break;
-        case 2: // Ouro
-            printf("  0      1\n");
-            printf(" ____   ____\n");
-            printf("|%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]]);
-            printf("|  %c | |  %c |\n", cartas[0].valor, cartas[1].valor);
-            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+        case 'O': // Ouro
+            printf("♦  ");
             break;
-        case 3: // Espadas
-            printf("  0      1      2  \n");
-            printf(" ____   ____   ____\n");
-            printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]]);
-            printf("|  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor);
-            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+        case 'E': // Espadas
+            printf("♠  ");
             break;
+        case 'P': // Paus
+            printf("♣  ");
+            break;
+    printf("%i\n\n",cartas.forca);
     }
 }
 
-Carta Escolhe_Carta(Carta *cartas, int tam, int *opcao){
-    int valor;
-    Print_Carta(cartas, tam);
+Carta Escolhe_Carta(Carta *cartas, int tam){ // Qual carta o cliente vai usar
+    int i, opcao;
+    for(i = 0; i < tam; i++){
+        printf("Opção %i: ",i);
+        Print_Carta(cartas[i]);
+        printf("\n");
+    }
     printf("Escolha o ID da carta que deseja jogar: ");
-    scanf("%i", &valor);
-    *opcao = valor;
-    return cartas[*opcao];
+    scanf("%i", &opcao);
+    return cartas[opcao];
 }
 
 
-void error(const char *msg){
+void error(const char *msg)
+{
     perror(msg);
     exit(0);
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[])
+{
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
     char buffer[1024];
 
     Carta *cartas;
-    Carta escolha;
-    int qtd, i, opcao = 0;
+    Carta escolha, mesa;
+    int qtd, qtd_mesa, i;
 
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
@@ -127,26 +102,52 @@ int main(int argc, char *argv[]){
             error("ERROR reading to socket");
         }
         if (strcmp(buffer, "Play") == 0){ // Deixa o cliente jogar
+            bzero(buffer,1024);
+            // Mostrar a mesa //
+            n = read(sockfd, buffer, 4); // "Mesa"
+            printf("\n%s\n", buffer); // Printf do Antonio da Mesa
+            bzero(buffer,1024);
+            n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
+            qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
+            bzero(buffer, 1024);
+            if(qtd_mesa != 0){ // Se houver cartas na mesa
+                for(i = 0; i < qtd_mesa; i++){
+                    n = read(sockfd, buffer, 3);
+                    mesa.valor = buffer[0];
+                    mesa.naipe = buffer[1];
+                    mesa.forca = buffer[2] - '0'; // transformar char em int
+                    Print_Carta(mesa); // Mostrar as cartas pro cliente
+                    printf("\n");
+                    // Printf do antonio das cartas
+                    bzero(buffer,1024);
+                }
+                printf("\n\n");
+            }else{
+                printf("Mesa vazia!\n\n");
+            }
+
             n = read(sockfd, buffer,1);  // Lê quantas cartas o cliente ainda tem na rodada
             qtd = atoi(buffer);
             bzero(buffer,1024); // Zera o buffer
             cartas = (Carta*)calloc(qtd, sizeof(Carta));
+
             for(i = 0; i < qtd; i++){ // Lê cada uma das cartas do cliente (só o servidor conhece elas)
                 n = read(sockfd, buffer, 3);
                 cartas[i].valor = buffer[0];
                 cartas[i].naipe = buffer[1];
                 cartas[i].forca = buffer[2] - '0'; // transformar char em int
                 bzero(buffer,1024);
-            }
-            escolha = Escolhe_Carta(cartas,qtd,&opcao); // Mostra as cartas pro cliente e faz ele decidir qual vai jogar
+            }           
+
+            escolha = Escolhe_Carta(cartas,qtd); // Mostra as cartas pro cliente e faz ele decidir qual vai jogar
             buffer[0] = escolha.valor;
             buffer[1] = escolha.naipe;
             buffer[2] = escolha.forca + '0';
-            buffer[3] = opcao + '0';
-            n = write(sockfd, buffer, 4); // Volta pro servidor qual carta foi escolhida
+            n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
             n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
             free(cartas); // Desaloca espaço
             bzero(buffer,1024);
+            printf("_________________________________________________________\n\n");
             n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
         }
     }
