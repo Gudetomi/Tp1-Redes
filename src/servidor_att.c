@@ -1,4 +1,4 @@
-/* Truco UFSJ multiplayer, cliente e servidor TCP
+/* Truco UFSJ multiplayer, cliente e servidor TCP 
 
 Antônio - 
 Gustavo - 
