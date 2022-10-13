@@ -12,7 +12,10 @@ Wagner Lancetti - wlancetti@gmail.com
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
+#include <netdb.h>
+#define KRED  "\x1B[31m"
+#define RESET "\x1B[0m"
 
 
 typedef struct{ // Struct para guardar as cartas
@@ -22,30 +25,78 @@ typedef struct{ // Struct para guardar as cartas
 }Carta;
 
 
-void Print_Carta(Carta cartas){
-    printf("%c  ", cartas.valor);
-    switch(cartas.naipe){
-        case 'C': // Copas
-            printf("♥  ");
-            break;
-        case 'O': // Ouro
-            printf("♦  ");
-            break;
-        case 'E': // Espadas
-            printf("♠  ");
-            break;
-        case 'P': // Paus
-            printf("♣  ");
-            break;
-    printf("%i\n\n",cartas.forca);
+void Print_Carta(Carta *cartas, int tam){
+    char cor[4][11] = {"\033[0;31m", "\033[0m", "\033[0m", "\033[0;31m"};
+    char naipe[4][7] = {"\u2665", "\u2663", "\u2660", "\u2666"};
+    int map_naipes[3] = {0, 0, 0};
+
+    for (int i=0; i < tam; i++) {
+        switch (cartas[i].naipe) {
+            case 'C': // Copas
+                map_naipes[0] = 0;
+                break;
+            case 'P': // Paus
+                map_naipes[0] = 1;
+                break;
+            case 'E': // Espadas
+                map_naipes[0] = 2;
+                break;
+            case 'O': // Ouro
+                map_naipes[0] = 3;
+                break;
+        }
     }
+
+    switch(tam){
+        case 1: // Copas
+            printf("  0\n");
+            printf(" ____\n");
+            printf("|%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]]);
+            printf("|  %c |\n", cartas[0].valor);
+            printf(" \u203E\u203E\u203E\u203E\n");
+            break;
+        case 2: // Ouro
+            printf("  0      1\n");
+            printf(" ____   ____\n");
+            printf("|%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]]);
+            printf("|  %c | |  %c |\n", cartas[0].valor, cartas[1].valor);
+            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+            break;
+        case 3: // Espadas
+            printf("  0      1      2  \n");
+            printf(" ____   ____   ____\n");
+            printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]]);
+            printf("|  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor);
+            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+            break;
+        case 4: // Espadas
+            printf("  0      1      2      3\n");
+            printf(" ____   ____   ____   ____\n");
+            printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]], cor[map_naipes[3]], naipe[map_naipes[3]]);
+            printf("|  %c | |  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor, cartas[3].valor);
+            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+            break;
+    }
+}
+
+void PrintaMesa(int placar1, int placar2){
+    printf("  /\\/\\   ___  ___  __ _ \n");
+    printf(" /    \\ / _ \\/ __|/ _` |\n");
+    printf("/ /\\/\\ \\  __/\\__ \\ (_| |\n");
+    printf("\\/    \\/\\___||___/\\__,_|\n");
+    printf("_______________________________________________________________________________________________________________\n");
+    printf("|     ____   ____                                                                                             |\n");
+    printf("|    | %d  | | %d  |                                                                                            |\n", placar1, placar2);
+    printf("|    | t1 | | t2 |                                                                                            |\n");
+    printf("|     \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E                                                                                             |\n");
+    printf("_______________________________________________________________________________________________________________\n");
+
 }
 
 Carta Escolhe_Carta(Carta *cartas, int tam){ // Qual carta o cliente vai usar
     int i, opcao;
     for(i = 0; i < tam; i++){
-        printf("Opção %i: ",i);
-        Print_Carta(cartas[i]);
+        Print_Carta(cartas, tam);
         printf("\n");
     }
     printf("Escolha o ID da carta que deseja jogar: ");
@@ -106,11 +157,11 @@ int main(int argc, char *argv[])
             // Mostrar a mesa //
             n = read(sockfd, buffer, 4); // "Mesa"
             printf("\n%s\n", buffer);
-            /* Apaga a linha de cima (108)
+            /* Apaga a linha de cima (108)*/
             if (strcmp(buffer, "Mesa") == 0){
+                PrintaMesa(0, 0);
                 // Printf do Antonio da palavra Mesa
             }
-            */
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
@@ -122,7 +173,7 @@ int main(int argc, char *argv[])
                     mesa[i].valor = buffer[0];
                     mesa[i].naipe = buffer[1];
                     mesa[i].forca = buffer[2] - '0'; // transformar char em int
-                    Print_Carta(mesa[i]); // Mostrar as cartas pro cliente
+                    Print_Carta(mesa, qtd_mesa); // Mostrar as cartas pro cliente
                     printf("\n");
                     bzero(buffer,1024);
                 }
