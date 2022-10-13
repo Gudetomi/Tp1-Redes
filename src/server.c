@@ -17,7 +17,9 @@ Wagner Lancetti - wlancetti@gmail.com
 #define TOTAL_CONECTIONS 4 // Quantas conexões o servidor vai aceitar
 #define MAX_CARTAS 40
 #define CHANGE_PLAYER (id = (id + 1) % TOTAL_CONECTIONS); // Alterar o jogador que vai jogar
-
+#define CLEAR_ROUND rodadas[0] = -1; rodadas[1] = -1; rodadas[2] = -1; // Limpa os ganhadores dos rounds
+#define RESET_ROUND free(vet); free(qtd); free(rodada_atual); free(usadas); // Limpa os vetores de cartas dos clientes e quais já foram usadas no round
+#define FREE_ALL free(cartas); free(vet); free(qtd); free(rodada_atual); free(usadas); free(rodadas); free(queda); free(jogo); // Libera todo espaco de memoria
 
 typedef struct{ // Struct para guardar as cartas
     char valor;
@@ -33,30 +35,32 @@ void error(const char *msg)
     exit(1);
 }
 
-
-void Escolhe_Naipe(Carta carta){
+char* Escolhe_Naipe(Carta carta){
+    char *valor;
+    valor = (char*)calloc(1,sizeof(char));
     switch(carta.naipe){
         case 'C': // Copas
-            printf("♥");
+            strcpy(&valor[0], "♥");
             break;
         case 'O': // Ouro
-            printf("♦");
+            strcpy(&valor[0], "♦");
             break;
         case 'E': // Espadas
-            printf("♠");
+            strcpy(&valor[0], "♠");
             break;
         case 'P': // Paus
-            printf("♣");
+            strcpy(&valor[0], "♣");
             break;
     }
+    return valor;
 }
 
 void Print_Baralho(Carta *cartas){
     int i;
     for(i = 0; i < MAX_CARTAS; i++){
         printf("%c  ", cartas[i].valor);
-        Escolhe_Naipe(cartas[i]);
-        printf("  %i\n",cartas[i].forca);
+        printf("%s  ", Escolhe_Naipe(cartas[i]));
+        printf("%i\n",cartas[i].forca);
     }
 }
 
@@ -169,19 +173,37 @@ int Ganhador(Carta carta1, Carta carta2, Carta carta3, Carta carta4){ // Funçã
     return maior;
 }
 
+
+int Analisa_Rodada(int *rodadas){
+    int i, d1 = 0, d2 = 0, queda = -1;
+    for(i = 0; i < 3; i++){ // Verifica se um time ja fez 2 rodadas
+        if(rodadas[i] == 0){
+            d1++;
+        }else if(rodadas[i] == 1){
+            d2++;
+        }
+    }
+    if (d1 == 2){
+        queda = 0;
+    }else if(d2 == 2){
+        queda = 1;
+    }
+    return queda;
+}
+
 int main(int argc, char *argv[]){
     int sockfd, portno, newsockfd[TOTAL_CONECTIONS];
-    int id = 0, i, indice, id_carta = 0, j;
+    int id = 0, i, j, n, verifica, indice, id_carta = 0, ganhador, qtd_jogadas = 0, multiplicador = 1, num_rodada = 0;
     socklen_t clilen[TOTAL_CONECTIONS];
     char buffer[1024];
     struct sockaddr_in serv_addr, cli_addr[TOTAL_CONECTIONS];
-    int n, ganhador, qtd_jogadas = 0;
 
     Carta *cartas = Pega_Baralho(); // Lê o arquivo e armazena o baralho
-    Carta *rodada_atual;
-    Carta *usadas;
-    int *vet;
-    int *qtd;
+    Carta *rodada_atual, *usadas;
+    int *vet, *qtd, *rodadas, *queda, *jogo;
+    // Rodadas -> Cada rotação de cartas é uma rodada
+    // Quedas -> Cada 12 pontos acumulados é uma queda
+    // Jogos -> 2 Quedas é um Jogo
 
 
     if (argc < 2){
@@ -216,23 +238,30 @@ int main(int argc, char *argv[]){
             break;
         }
     }
-
-    bzero(buffer,1024);
     vet = (int*)calloc(TOTAL_CONECTIONS*3, sizeof(int)); // Cada cliente: 3 posições de cartas
     vet = Distribui_Cartas(); // Da 3 cartas para cada usuário (sem repetição)
     qtd = (int*)calloc(TOTAL_CONECTIONS, sizeof(int));
     for(i = 0; i < TOTAL_CONECTIONS; i++){ // Cada cliente começa com 3 cartas
         qtd[i] = 3;
     }
-    rodada_atual = (Carta*)calloc(4, sizeof(Carta));
-    usadas = (Carta*)calloc(4, sizeof(Carta));
+    rodada_atual = (Carta*)calloc(4, sizeof(Carta)); // Cartas de cada cliente na rodada
+    usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
+    rodadas = (int*)calloc(3,sizeof(int)); // 3 rodadas
+    queda = (int*)calloc(2, sizeof(int)); // Duas duplas
+    jogo = (int*)calloc(2, sizeof(int)); // Duas duplas
+    CLEAR_ROUND
 
     while(1) {
+        bzero(buffer,1024);
         n = write(newsockfd[id], "Play", 4); // Coloca um Cliente para jogar
         if (n < 0){
             error("ERROR writing to client");
         }
-
+        // Mostra o placar para o cliente:
+        bzero(buffer,1024);
+        buffer[0] = queda[id % 2] + '0';
+        n = write(newsockfd[id], buffer, 1);
+        
         // Mostrar a mesa pro cliente
         n = write(newsockfd[id], "Mesa", 4);
         bzero(buffer,1024);
@@ -281,7 +310,7 @@ int main(int argc, char *argv[]){
 
         if (strcmp(buffer,"Joguei") == 0){ // Cliente avisa que já fez sua jogada
             n = write(newsockfd[id], "Wait", 4);
-            indice = vet[id * 3]; // 39
+            indice = vet[id * 3];
             for(i = 0; i < MAX_CARTAS; i++){ // Acha o indice da carta usada pelo cliente
                 if((cartas[i].valor == rodada_atual[id].valor) && (cartas[i].naipe == rodada_atual[id].naipe)){
                     id_carta = i;
@@ -295,34 +324,59 @@ int main(int argc, char *argv[]){
             }
         }
 
-        if(id == TOTAL_CONECTIONS-1){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
-            ganhador = Ganhador(rodada_atual[0],rodada_atual[1],rodada_atual[2],rodada_atual[3]);
-            
-            qtd_jogadas = 0;
 
-            if (ganhador != 5){ // Se não der empate
-                printf("Quem ganhou a rodada foi o jogador %i, usando a carta: %c ",ganhador, rodada_atual[ganhador-1].valor);
-                Escolhe_Naipe(rodada_atual[ganhador-1]);
-                printf("\n\n");
-            }else{ // Se der empate
-                printf("Houve empate!\n\n");
-            }
+        if(qtd_jogadas == 4){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
             for(i = 0; i < TOTAL_CONECTIONS; i++){ // Todos os clientes jogaram uma carta, reduzir uma pra cada
                 qtd[i] -= 1;
+            }
+            ganhador = Ganhador(rodada_atual[0],rodada_atual[1],rodada_atual[2],rodada_atual[3]);
+            qtd_jogadas = 0;
+            if (ganhador != 5){ // Se não der empate
+                bzero(buffer,1024);
+
+                buffer[0] = ganhador + '0';
+                buffer[1] = rodada_atual[ganhador-1].valor;
+                buffer[2] = rodada_atual[ganhador-1].naipe;
+                for(i = 0; i < TOTAL_CONECTIONS; i++){ // Manda pra todos os clientes quem fez a rodada
+                    n = write(newsockfd[i], buffer, 3);
+                }
+                rodadas[num_rodada] = (ganhador-1)%2;
+                num_rodada++;
+                verifica = Analisa_Rodada(rodadas); // 0 dupla 1, 1 dupla 2
+                if (verifica != -1){ // Dupla ganhou a queda
+                    queda[verifica] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
+                    CLEAR_ROUND
+                    RESET_ROUND
+                    num_rodada = 0;
+                    vet = (int*)calloc(TOTAL_CONECTIONS*3, sizeof(int)); // Cada cliente: 3 posições de cartas
+                    vet = Distribui_Cartas(); // Da 3 cartas para cada usuário (sem repetição)
+                    qtd = (int*)calloc(TOTAL_CONECTIONS, sizeof(int));
+                    for(i = 0; i < TOTAL_CONECTIONS; i++){ // Cada cliente começa com 3 cartas
+                        qtd[i] = 3;
+                    }
+                    rodada_atual = (Carta*)calloc(4, sizeof(Carta)); // Cartas de cada cliente na rodada
+                    usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
+                    verifica = -1;
+
+                }
+
+            }else{ // Se der empate
+                for(i = 0; i < TOTAL_CONECTIONS; i++){
+                    n = write(newsockfd[i], "Emp", 3);
+                }
+                printf("Houve empate!\n\n");
             }
             free(rodada_atual);
             free(usadas);
             rodada_atual = (Carta*)calloc(4, sizeof(Carta));
             usadas = (Carta*)calloc(4, sizeof(Carta));
+            multiplicador = 1;
+            CHANGE_PLAYER
         }
         CHANGE_PLAYER // Muda qual cliente irá jogar agora
     }
     // Limpa o espaço de memória
-    free(cartas);
-    free(vet);
-    free(qtd);
-    free(rodada_atual);
-    free(usadas);
+    FREE_ALL
     for (i = 0; i < TOTAL_CONECTIONS; i++){ // Finaliza as conexões dos clientes
         close(newsockfd[i]);
     }
