@@ -69,13 +69,6 @@ void Print_Carta(Carta *cartas, int tam){
             printf("|  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor);
             printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
             break;
-        case 4: // Espadas
-            printf("  0      1      2      3\n");
-            printf(" ____   ____   ____   ____\n");
-            printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]], cor[map_naipes[3]], naipe[map_naipes[3]]);
-            printf("|  %c | |  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor, cartas[3].valor);
-            printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
-            break;
     }
 }
 
@@ -94,11 +87,9 @@ void PrintaMesa(int placar1, int placar2){
 }
 
 Carta Escolhe_Carta(Carta *cartas, int tam){ // Qual carta o cliente vai usar
-    int i, opcao;
-    for(i = 0; i < tam; i++){
-        Print_Carta(cartas, tam);
-        printf("\n");
-    }
+    int opcao;
+    Print_Carta(cartas, tam);
+    printf("\n");
     printf("Escolha o ID da carta que deseja jogar: ");
     scanf("%i", &opcao);
     return cartas[opcao];
@@ -173,10 +164,10 @@ int main(int argc, char *argv[])
                     mesa[i].valor = buffer[0];
                     mesa[i].naipe = buffer[1];
                     mesa[i].forca = buffer[2] - '0'; // transformar char em int
-                    Print_Carta(mesa, qtd_mesa); // Mostrar as cartas pro cliente
-                    printf("\n");
                     bzero(buffer,1024);
                 }
+                Print_Carta(mesa, qtd_mesa); // Mostrar as cartas pro cliente
+                printf("\n");
                 // Printf do antonio das cartas (Apaga a chamada da função Print_Carta e do printf tambem dentro do for)
                 free(mesa);
                 printf("\n\n");
