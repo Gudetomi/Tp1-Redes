@@ -1,9 +1,7 @@
 /* Truco UFSJ multiplayer, cliente e servidor TCP
-
-Antônio - 
-Gustavo - 
-Wagner Lancetti - wlancetti@gmail.com
-
+    Antônio - 
+    Gustavo - 
+    Wagner Lancetti - wlancetti@gmail.com
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,8 +160,8 @@ int main(int argc, char *argv[])
 
     Print_Init();
     
+    bzero(buffer,1024); 
     while(1){
-        bzero(buffer,1024);
         n = read(sockfd, buffer, 4); // Espero (Wait), ou Jogo (Play)?
         if (n < 0){
             error("ERROR reading to socket");
@@ -171,7 +169,7 @@ int main(int argc, char *argv[])
         if (strcmp(buffer, "Play") == 0){ // Deixa o cliente jogar
             bzero(buffer,1024);
             // Pega a pontuação
-            n = read(sockfd, buffer, 2);
+            n = read(sockfd, buffer, 2); // Placar
             // Mostrar a mesa //
             PrintaMesa(buffer[0] - '0', buffer[1] - '0');
             bzero(buffer,1024);
@@ -193,7 +191,7 @@ int main(int argc, char *argv[])
                 free(mesa);
                 printf("\n\n");
             }else{
-                printf("vazia!\n\n");
+                printf("Vazia!\n\n");
             }
             printf("________________________________________________________________\n");
 
@@ -215,16 +213,18 @@ int main(int argc, char *argv[])
             buffer[1] = escolha.naipe;
             buffer[2] = escolha.forca + '0';
             n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
-            n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
+
+            // n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
             
             free(cartas); // Desaloca espaço
+            // bzero(buffer,1024);
+            // n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
+            
             bzero(buffer,1024);
-            n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
-            bzero(buffer,1024);
-
             n = read(sockfd, buffer, 3); // Recebe a mensagem de quem ganhou a rodada
 
             if (strcmp(buffer, "Emp") != 0){
+                printf("%s\n\n", buffer);
                 vencedora = (Carta *) malloc(1 * sizeof(Carta));
                 vencedora[0].valor = buffer[1];
                 vencedora[0].naipe = buffer[2];
