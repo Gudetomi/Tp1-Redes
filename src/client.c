@@ -33,16 +33,16 @@ void Print_Carta(Carta *cartas, int tam){
     for (int i=0; i < tam; i++) {
         switch (cartas[i].naipe) {
             case 'C': // Copas
-                map_naipes[0] = 0;
+                map_naipes[i] = 0;
                 break;
             case 'P': // Paus
-                map_naipes[0] = 1;
+                map_naipes[i] = 1;
                 break;
             case 'E': // Espadas
-                map_naipes[0] = 2;
+                map_naipes[i] = 2;
                 break;
             case 'O': // Ouro
-                map_naipes[0] = 3;
+                map_naipes[i] = 3;
                 break;
         }
     }
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     struct hostent *server;
     char buffer[1024];
 
-    Carta *cartas, *mesa;
+    Carta *cartas, *mesa, *vencedora;
     Carta escolha;
     int qtd, qtd_mesa, i;
 
@@ -145,14 +145,17 @@ int main(int argc, char *argv[])
         }
         if (strcmp(buffer, "Play") == 0){ // Deixa o cliente jogar
             bzero(buffer,1024);
+            // Pega a pontuação
+            n = read(sockfd, buffer, 1);
+            printf("Pontos: %c\n",buffer[0]);
+            bzero(buffer, 1024);
             // Mostrar a mesa //
             n = read(sockfd, buffer, 4); // "Mesa"
             printf("\n%s\n", buffer);
-            /* Apaga a linha de cima (108)*/
-            if (strcmp(buffer, "Mesa") == 0){
-                PrintaMesa(0, 0);
-                // Printf do Antonio da palavra Mesa
-            }
+            /* Apaga a linha de cima (108)*/ // TODO: Arrumar o printf da Mesa
+            // if (strcmp(buffer, "Mesa") == 0){
+            //     PrintaMesa(0, 0);
+            // }
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
@@ -197,6 +200,26 @@ int main(int argc, char *argv[])
             
             free(cartas); // Desaloca espaço
             bzero(buffer,1024);
+            n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
+            bzero(buffer,1024);
+
+            n = read(sockfd, buffer, 3); // Recebe a mensagem de quem ganhou a rodada
+
+            if (strcmp(buffer, "Emp") != 0){
+                vencedora = (Carta *) malloc(1 * sizeof(Carta));
+                vencedora[0].valor = buffer[1];
+                vencedora[0].naipe = buffer[2];
+                system("clear");
+                printf("\n\nQuem ganhou a rodada foi o jogador %c, usando a carta:\n", buffer[0]);
+                Print_Carta(vencedora, 1);
+                free(vencedora);
+            }else{
+                system("clear");
+                printf("\n\nHouve Empate");
+            }
+
+            bzero(buffer, 1024);
+            strcpy(buffer, "Wait");
             printf("_________________________________________________________\n\n");
             n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
         }

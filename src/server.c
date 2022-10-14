@@ -37,19 +37,19 @@ void error(const char *msg)
 
 char* Escolhe_Naipe(Carta carta){
     char *valor;
-    valor = (char*)calloc(1,sizeof(char));
+    valor = (char*)calloc(4,sizeof(char));
     switch(carta.naipe){
         case 'C': // Copas
-            strcpy(&valor[0], "♥");
+            strcpy(valor, "♥");
             break;
         case 'O': // Ouro
-            strcpy(&valor[0], "♦");
+            strcpy(valor, "♦");
             break;
         case 'E': // Espadas
-            strcpy(&valor[0], "♠");
+            strcpy(valor, "♠");
             break;
         case 'P': // Paus
-            strcpy(&valor[0], "♣");
+            strcpy(valor, "♣");
             break;
     }
     return valor;
