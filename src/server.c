@@ -259,11 +259,11 @@ int main(int argc, char *argv[]){
         }
         // Mostra o placar para o cliente:
         bzero(buffer,1024);
-        buffer[0] = queda[id % 2] + '0';
-        n = write(newsockfd[id], buffer, 1);
+        buffer[0] = queda[0] + '0';
+        buffer[1] = queda[1] + '0';
+        n = write(newsockfd[id], buffer, 2);
         
         // Mostrar a mesa pro cliente
-        n = write(newsockfd[id], "Mesa", 4);
         bzero(buffer,1024);
         buffer[0] = qtd_jogadas + '0'; // Quantas cartas ja foram usadas na mesa
         n = write(newsockfd[id], buffer, 1); // Qtd de cartas na mesa

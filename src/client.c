@@ -24,6 +24,16 @@ typedef struct{ // Struct para guardar as cartas
     int forca;
 }Carta;
 
+void Print_Init(){
+    printf(" _______  _______  _______  _______  _______\n");
+    printf("|\\     /||\\     /||\\     /||\\     /||\\     /|\n");
+    printf("| +---+ || +---+ || +---+ || +---+ || +---+ |   _   _   ___   ___      _ \n");
+    printf("| |   | || |   | || |   | || |   | || |   | |  | | | | | __| / __|  _ | |\n");
+    printf("| |T  | || |r  | || |u  | || |c  | || |o  | |  | |_| | | _|  \\__ \\ | || |\n");
+    printf("| +---+ || +---+ || +---+ || +---+ || +---+ |   \\___/  |_|   |___/  \\__/ \n");
+    printf("|/_____\\||/_____\\||/_____\\||/_____\\||/_____\\|\n\n\n");
+
+}
 
 void Print_Carta(Carta *cartas, int tam){
     char cor[4][11] = {"\033[0;31m", "\033[0m", "\033[0m", "\033[0;31m"};
@@ -73,17 +83,30 @@ void Print_Carta(Carta *cartas, int tam){
 }
 
 void PrintaMesa(int placar1, int placar2){
-    printf("  /\\/\\   ___  ___  __ _ \n");
-    printf(" /    \\ / _ \\/ __|/ _` |\n");
-    printf("/ /\\/\\ \\  __/\\__ \\ (_| |\n");
-    printf("\\/    \\/\\___||___/\\__,_|\n");
-    printf("_______________________________________________________________________________________________________________\n");
-    printf("|     ____   ____                                                                                             |\n");
-    printf("|    | %d  | | %d  |                                                                                            |\n", placar1, placar2);
-    printf("|    | t1 | | t2 |                                                                                            |\n");
-    printf("|     \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E                                                                                             |\n");
-    printf("_______________________________________________________________________________________________________________\n");
+    char p1[3], p2[3];
+    sprintf(p1, "%d", placar1);
+    sprintf(p2, "%d", placar2);
 
+    if (placar1 <= 9){
+        p1[1] = ' ';
+        p1[2] = '\0';
+    }
+    if (placar2 <= 9){
+        p2[1] = ' ';
+        p2[2] = '\0';
+    }
+    printf("________________________________________________________________\n");
+    printf("╔═╗┬  ┌─┐┌─┐┌─┐┬─┐\n");
+    printf("╠═╝│  ├─┤│  ├─┤├┬┘\n");
+    printf("╩  ┴─┘┴ ┴└─┘┴ ┴┴└─\n");
+    printf(" ____   ____\n");
+    printf("| %s | | %s |\n", p1, p2);
+    printf("| t1 | | t2 |\n");
+    printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+
+    printf("╔╦╗┌─┐┌─┐┌─┐\n");
+    printf("║║║├┤ └─┐├─┤\n");
+    printf("╩ ╩└─┘└─┘┴ ┴\n");
 }
 
 Carta Escolhe_Carta(Carta *cartas, int tam){ // Qual carta o cliente vai usar
@@ -136,6 +159,8 @@ int main(int argc, char *argv[])
     
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
+
+    Print_Init();
     
     while(1){
         bzero(buffer,1024);
@@ -146,16 +171,9 @@ int main(int argc, char *argv[])
         if (strcmp(buffer, "Play") == 0){ // Deixa o cliente jogar
             bzero(buffer,1024);
             // Pega a pontuação
-            n = read(sockfd, buffer, 1);
-            printf("Pontos: %c\n",buffer[0]);
-            bzero(buffer, 1024);
+            n = read(sockfd, buffer, 2);
             // Mostrar a mesa //
-            n = read(sockfd, buffer, 4); // "Mesa"
-            printf("\n%s\n", buffer);
-            /* Apaga a linha de cima (108)*/ // TODO: Arrumar o printf da Mesa
-            // if (strcmp(buffer, "Mesa") == 0){
-            //     PrintaMesa(0, 0);
-            // }
+            PrintaMesa(buffer[0] - '0', buffer[1] - '0');
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
@@ -175,8 +193,9 @@ int main(int argc, char *argv[])
                 free(mesa);
                 printf("\n\n");
             }else{
-                printf("Mesa vazia!\n\n");
+                printf("vazia!\n\n");
             }
+            printf("________________________________________________________________\n");
 
             n = read(sockfd, buffer,1);  // Lê quantas cartas o cliente ainda tem na rodada
             qtd = atoi(buffer);
@@ -221,7 +240,6 @@ int main(int argc, char *argv[])
             bzero(buffer, 1024);
             strcpy(buffer, "Wait");
             printf("_________________________________________________________\n\n");
-            n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
         }
     }
     close(sockfd);

@@ -17,10 +17,10 @@ build:
 	gcc -Wall src/server.c -o bin/server
 
 server:
-	./bin/server 5004
+	./bin/server 5001
 
 client:
-	./bin/client localhost 5004
+	./bin/client localhost 5001
 
 clean:
 	@rm ./bin/*
