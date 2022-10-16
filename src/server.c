@@ -157,9 +157,9 @@ int Analisa_Rodada(int *rodadas){ // Verifica se já tem um vencedor para a roda
             d2++;
         }
     }
-    if (d1 == 2){ // Se a dupla 1 ganhou, retorna o ID dela
+    if(d1 == 2){ // Se a dupla 1 ganhou as duas primeiras rodadas
         queda = 0;
-    }else if(d2 == 2){ // Se a dupla 2 ganhou, retorna o ID dela
+    }else if(d2 == 2){ // Se a dupla 2 ganhou as duas primeiras rodadas
         queda = 1;
     }
     return queda;
@@ -183,11 +183,11 @@ int* Remove_Carta_Cliente(char valor, char naipe, Carta *cartas, int *vet, int i
 
 
 void Send_All(int newsockfd[], char *buffer, int tam){ // Avisa para todos os clientes a mensagem (buffer)
-    int i;
+    int i, n;
     for(i = 0; i < TOTAL_CONECTIONS; i++){
-        write(newsockfd[i], buffer, tam);
+        n = write(newsockfd[i], buffer, tam);
     }
-    bzero(buffer, 1024);
+    n++;
 }
 
 Carta Armazena_Carta(Carta carta, char buffer[]){ // Guarda uma carta lida do cliente
@@ -203,6 +203,13 @@ int *Atualiza_Vetor(int *vet, int valor, int tam){ // Atualiza o vetor de acordo
         vet[i] = valor; // Valor do parametro de entrada
     }
     return vet;
+}
+
+void Status_Queda(int *newsockfd, char *buffer, char id_dupla){
+    Send_All(newsockfd, buffer, 5); // Avisa pros clientes que acabou a rodada
+    if (strcmp(buffer, "QUEDA") == 0){ // Se acabou a queda manda pros clientes a dupla ganhadora
+        Send_All(newsockfd, &id_dupla, 1);
+    }
 }
 
 
@@ -312,11 +319,21 @@ int main(int argc, char *argv[]){
                 buffer[1] = rodada_atual[ganhador-1].valor; // Valor da carta usada (A,2,3,...,K)
                 buffer[2] = rodada_atual[ganhador-1].naipe; // Naipe da carta usada (♥, ♦, ♣, ♣)
                 Send_All(newsockfd, buffer, 3); // Manda a mensagem para todos os clientes
+                bzero(buffer,1024);
                 rodadas[num_rodada] = (ganhador-1)%2; // Define qual dupla ganhou a rodada
                 num_rodada++;
-                verifica = Analisa_Rodada(rodadas); // 0 dupla 1, 1 dupla 2
+                verifica = Analisa_Rodada(rodadas); // 0: dupla 1 /-/ 1: dupla 2s
                 if (verifica != -1 || empate == 1){ // Dupla ganhou a queda, ou empatou a primeira rodada (ganha quem fizer a próxima)
-                    queda[verifica] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
+                    if(verifica != -1){ // Se ganhou sem empate
+                        queda[verifica] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
+                    }else{ // Se ganhou com empate
+                        verifica = (ganhador-1)%2; // Quem ganhou a ultima rodada
+                        queda[verifica] += 2 * multiplicador;
+                    }
+                    bzero(buffer, 1024);
+                    strcpy(buffer, "QUEDA");
+                    Status_Queda(newsockfd, "QUEDA", (verifica + 1) + '0');
+                    bzero(buffer, 1024);
                     CLEAR_ROUND // Limpa qual dupla ganhou cada rodada
                     RESET_ROUND // Libera o espaço de todos os vetores usados na rodada
                     num_rodada = 0; // Numero da rodada volta para o inicio
@@ -325,16 +342,38 @@ int main(int argc, char *argv[]){
                     rodada_atual = (Carta*)calloc(4, sizeof(Carta)); // Cartas de cada cliente na rodada
                     usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
                     qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
+                    empate = 0;
+                }else{
+                    bzero(buffer, 1024);
+                    strcpy(buffer, "GOIGN");
+                    Status_Queda(newsockfd, buffer, 'D');
+                    bzero(buffer, 1024);
                 }
+                
             }else{ // Se der empate
                 Send_All(newsockfd, "Emp", 3);
+                bzero(buffer,1024);
                 if(num_rodada == 0){ // Empatou a primeira rodada
-                    empate = 1;
-                }else{ // Empatou na segunda rodada
-                    if(rodadas[0] != -1){ // Se a primeira não deu empate, entao quem fez ela ganha a queda
-                        // TODO: Mandar mensagem pro cliente avisando quem ganhou
+                    rodadas[num_rodada] = 2; // Empate na primeira queda (ngm leva)
+                    empate = 1; // O proximo cliente a ganhar a rodada vence a queda
+                    Send_All(newsockfd, "1Rodada", 7);
+                    bzero(buffer,1024);
+                    printf("\nEmpate na rodada 1!\n\n");
+                    num_rodada++;
+                }else{ // Empatou na segunda/terceira rodada
+                    Send_All(newsockfd, "2Rodada", 7);
+                    bzero(buffer,1024);
+                    if(rodadas[0] != 2){ // Se a primeira não deu empate, entao quem fez ela ganha a queda
+                        bzero(buffer, 1024);
+                        buffer[0] = (rodadas[0] + 1) +  '0';
+                        buffer[1] = 'N';
+                        buffer[2] = 'D';
+                        Send_All(newsockfd, buffer, 3);
                         verifica = rodadas[0];
                         queda[verifica] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
+                        bzero(buffer,1024);
+                        strcpy(buffer, "QUEDA");
+                        Status_Queda(newsockfd, buffer, (verifica + 1) + '0');
                         CLEAR_ROUND
                         RESET_ROUND // Reseta valores para uma nova rodada
                         num_rodada = 0; // Numero da rodada volta para o inicio
@@ -343,13 +382,19 @@ int main(int argc, char *argv[]){
                         rodada_atual = (Carta*)calloc(4, sizeof(Carta)); // Cartas de cada cliente na rodada
                         usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
                         qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
+                        printf("\nHouve ganhador na rodada 1. Logo finaliza!\n\n");
+                        empate = 0;
+                    }else{
+                        Send_All(newsockfd, "Emp", 3);
+                        rodadas[num_rodada] = 2;
+                        num_rodada++;
+                        bzero(buffer,1024);
+                        printf("\nHouve empate! Rodada 2 ou 3.\n\n");
                     }
                 }
-                printf("Houve empate!\n\n");
             }
             printf("\n");
             multiplicador = 1;
-            empate = 0;
             qtd_jogadas = 0; // Zera as cartas pra próxima rodada
             CHANGE_PLAYER // Pula um cliente (o primeiro que jogou na rodada anterior, passa a ser o ultimo a jogar)
         }
