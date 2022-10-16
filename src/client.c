@@ -123,8 +123,20 @@ void error(const char *msg)
     exit(0);
 }
 
-int main(int argc, char *argv[])
-{
+void Verifica_Queda(int sockfd, char *buffer){
+    int n;
+    n = read(sockfd,buffer,5); // "QUEDA" ou "GOING"
+    if(strcmp(buffer, "QUEDA") == 0){ // Verifica se a queda acabou
+        bzero(buffer, 1024);
+        n = read(sockfd,buffer, 1);
+        printf("\n\nA dupla %c ganhou a queda!\n\n", buffer[0]);
+        bzero(buffer, 1024);
+    }
+    n++;
+}
+
+int main(int argc, char *argv[]){
+    system("clear");
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -186,10 +198,8 @@ int main(int argc, char *argv[])
                     bzero(buffer,1024);
                 }
                 Print_Carta(mesa, qtd_mesa); // Mostrar as cartas pro cliente
-                printf("\n");
-                // Printf do antonio das cartas (Apaga a chamada da função Print_Carta e do printf tambem dentro do for)
                 free(mesa);
-                printf("\n\n");
+                printf("\n\n\n");
             }else{
                 printf("Vazia!\n\n");
             }
@@ -214,32 +224,41 @@ int main(int argc, char *argv[])
             buffer[2] = escolha.forca + '0';
             n = write(sockfd, buffer, 3); // Volta pro servidor qual carta foi escolhida
 
-            // n = write(sockfd, "Joguei",6); // Avisa que terminou de jogar
-            
             free(cartas); // Desaloca espaço
-            // bzero(buffer,1024);
-            // n = read(sockfd, buffer, 4); // Recebe a mensagem do servidor para ficar aguardando a próxima jogada
             
             bzero(buffer,1024);
             n = read(sockfd, buffer, 3); // Recebe a mensagem de quem ganhou a rodada
-
-            if (strcmp(buffer, "Emp") != 0){
-                printf("%s\n\n", buffer);
+            if (strcmp(buffer, "Emp") != 0){ // Se houver um ganhador da rodada
                 vencedora = (Carta *) malloc(1 * sizeof(Carta));
                 vencedora[0].valor = buffer[1];
                 vencedora[0].naipe = buffer[2];
                 system("clear");
                 printf("\n\nQuem ganhou a rodada foi o jogador %c, usando a carta:\n", buffer[0]);
-                Print_Carta(vencedora, 1);
+                Print_Carta(vencedora, 1); // Mostra a carta vencedora
                 free(vencedora);
-            }else{
+                bzero(buffer, 1024);
+                Verifica_Queda(sockfd, buffer); // Verifica se a queda acabou
+            }else{ // Se empatar
                 system("clear");
-                printf("\n\nHouve Empate");
+                bzero(buffer, 1024);
+                n = read(sockfd, buffer, 7); // Qual rodada empatou
+                if (strcmp(buffer, "1Rodada") == 0){ // Empate na primeira rodada
+                    printf("\nEmpatou na primeira rodada! Quem ganhar qualquer uma das proximas rodadas vence!\n\n");
+                }else{ // Empate na 2 ou 3 rodada
+                    bzero(buffer, 1024);
+                    n = read(sockfd, buffer, 3); // Recebe a carta que ganhou ou avisando que empatou dnv
+                    if (strcmp(buffer, "Emp") == 0){
+                        printf("\nEmpatou novamente...\n\n");
+                    }else{
+                        printf("\n\nQuem ganhou a queda foi a dupla %c, por ter ganhado a primeira rodada.\n\n", buffer[0]);
+                        Verifica_Queda(sockfd, buffer);
+                    }
+                }
             }
-
             bzero(buffer, 1024);
             strcpy(buffer, "Wait");
             printf("_________________________________________________________\n\n");
+            printf("\n\nAguardando para jogar...\n\n");
         }
     }
     close(sockfd);
