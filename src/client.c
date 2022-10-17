@@ -33,7 +33,7 @@ void Print_Init(){
 
 }
 
-void Print_Carta(Carta *cartas, int tam){
+void Print_Carta(Carta *cartas, int tam, int mesa){
     char cor[4][11] = {"\033[0;31m", "\033[0m", "\033[0m", "\033[0;31m"};
     char naipe[4][7] = {"\u2665", "\u2663", "\u2660", "\u2666"};
     int map_naipes[3] = {0, 0, 0};
@@ -57,21 +57,24 @@ void Print_Carta(Carta *cartas, int tam){
 
     switch(tam){
         case 1: // Copas
-            printf("  0\n");
+            if (!mesa)
+                printf("  0\n");
             printf(" ____\n");
             printf("|%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]]);
             printf("|  %c |\n", cartas[0].valor);
             printf(" \u203E\u203E\u203E\u203E\n");
             break;
         case 2: // Ouro
-            printf("  0      1\n");
+            if (!mesa)
+                printf("  0      1\n");
             printf(" ____   ____\n");
             printf("|%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]]);
             printf("|  %c | |  %c |\n", cartas[0].valor, cartas[1].valor);
             printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
             break;
         case 3: // Espadas
-            printf("  0      1      2  \n");
+            if (!mesa)
+                printf("  0      1      2  \n");
             printf(" ____   ____   ____\n");
             printf("|%s%s\033[0m   | |%s%s\033[0m   | |%s%s\033[0m   |\n", cor[map_naipes[0]], naipe[map_naipes[0]], cor[map_naipes[1]], naipe[map_naipes[1]], cor[map_naipes[2]], naipe[map_naipes[2]]);
             printf("|  %c | |  %c | |  %c |\n", cartas[0].valor, cartas[1].valor, cartas[2].valor);
@@ -109,7 +112,7 @@ void PrintaMesa(int placar1, int placar2){
 
 Carta Escolhe_Carta(Carta *cartas, int tam){ // Qual carta o cliente vai usar
     int opcao;
-    Print_Carta(cartas, tam);
+    Print_Carta(cartas, tam, 0);
     printf("\n");
     printf("Escolha o ID da carta que deseja jogar: ");
     scanf("%i", &opcao);
@@ -197,11 +200,14 @@ int main(int argc, char *argv[]){
                     mesa[i].forca = buffer[2] - '0'; // transformar char em int
                     bzero(buffer,1024);
                 }
-                Print_Carta(mesa, qtd_mesa); // Mostrar as cartas pro cliente
+                Print_Carta(mesa, qtd_mesa, 1); // Mostrar as cartas pro cliente
                 free(mesa);
                 printf("\n\n\n");
             }else{
-                printf("Vazia!\n\n");
+                printf("╦  ╦┌─┐┌─┐┬┌─┐\n");
+                printf("╚╗╔╝├─┤┌─┘│├─┤\n");
+                printf(" ╚╝ ┴ ┴└─┘┴┴ ┴\n\n");
+
             }
             printf("________________________________________________________________\n");
 
@@ -234,7 +240,7 @@ int main(int argc, char *argv[]){
                 vencedora[0].naipe = buffer[2];
                 system("clear");
                 printf("\n\nQuem ganhou a rodada foi o jogador %c, usando a carta:\n", buffer[0]);
-                Print_Carta(vencedora, 1); // Mostra a carta vencedora
+                Print_Carta(vencedora, 1, 0); // Mostra a carta vencedora
                 free(vencedora);
                 bzero(buffer, 1024);
                 Verifica_Queda(sockfd, buffer); // Verifica se a queda acabou
