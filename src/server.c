@@ -1,7 +1,7 @@
-/* Truco UFSJ multiplayer, cliente e servidor TCP
-    Antônio - 
-    Gustavo - 
-    Wagner Lancetti - wlancetti@gmail.com
+/* Truco UFSJ multiplayer, servidor TCP
+    Antônio Pereira de Souza Júnior -  2022103670
+    Gustavo Henrique Alves Detomi - gustavodetomi@gmail.com - 172050107
+    Wagner Lancetti - wlancetti@gmail.com - 2022103705
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +22,14 @@
 #define RECUSADO (strcmp(buffer, "RECUSADO") == 0)
 #define AUMENTAR (strcmp(buffer, "AUMENTAR") == 0)
 #define CONTINUA (strcmp(buffer, "CONTINUA") == 0)
-
+#define PEDIRAM_TRUCO (truco == 1)
+#define NAO_JOGOU_TRUCADO (skip == 0)
+#define JOGADOR_TRUCADO (ids_truco[1] == id)
+#define AUMENTARAM_APOSTA (valor == 1)
+#define FIM_RODADA (qtd_jogadas == 4)
+#define HOUVE_GANHADOR (ganhador != 5)
+#define EMPATE_1RODADA (num_rodada == 0)
+#define NAO_EMPATOU_PRIMEIRA (rodadas[0] != 2)
 
 
 
@@ -351,17 +358,17 @@ int main(int argc, char *argv[]){
     CLEAR_ROUND  // Zera as rodadas
     
     while(1){
-        if (ids_truco[1] == id){ // Se ngm pediu truco na rodada
+        if (JOGADOR_TRUCADO){ // Se for a rodada do jogador trucado
             n = write(newsockfd[id], "JOGA", 4);
             skip = 1;
             bzero(buffer, 1024);
             n = read(newsockfd[id], buffer, 1); // Cliente avisa que nao pode pedir truco
-        }else{
+        }else{ // Se nao for a rodada do jogador trucado / nao houve truco na rodada
             Libera_Proximo_Cliente(newsockfd, id, usadas, qtd_jogadas, cartas, queda, qtd, vet);
             skip = 0;
         }
 
-        if(skip == 0){ // Cliente participou de um truco e já realizou todos esses comandos
+        if(NAO_JOGOU_TRUCADO){ // Cliente participou de um truco e já realizou todos esses comandos
             if(rodada_trucada == 1){ // Alguem ja pediu truco e mandou descer nessa rodada
                 bzero(buffer, 1024);
                 buffer[0] = 2 + '0';
@@ -375,9 +382,10 @@ int main(int argc, char *argv[]){
             n = read(newsockfd[id], buffer, 1); // Define se o jogador pediu truco ou nao
             truco = buffer[0] - '0';
             
-            if (truco == 1){ // Se o jogador pediu truco
+            if (PEDIRAM_TRUCO){ // Se o jogador pediu truco
                 id_dupla = id % 2;
-                if (num_rodada == 3){ // Ultimo jogador da rodada
+                if (qtd_jogadas == 3){ // Ultimo jogador da rodada
+                    bzero(buffer, 1024);
                     n = write(newsockfd[id], "ULTIMOJG", 8); // Avisa que aquele cliente é o ultimo a jogar, entao nao pode pedir truco
                     printf("\n\nÉ o ultimo jogador, nao pode pedir truco...\n\n");
                 }else{ // Qualquer outro jogador
@@ -403,30 +411,30 @@ int main(int argc, char *argv[]){
                         valor = buffer[0] - '0';
                         NEXT_PLAYER
                         n = write(newsockfd[id], buffer, 1);
-                        if (valor == 1){ // TRUCANDO AUMENTOU PRA OITO
+                        if (AUMENTARAM_APOSTA){ // TRUCANDO AUMENTOU PRA OITO
                             multiplicador++; // Oito
                             bzero(buffer, 1024);
                             n = read(newsockfd[id], buffer, 1); // Decisao do Trucado
                             valor = buffer[0] - '0';
                             PREVIOUS_PLAYER
                             n = write(newsockfd[id], buffer, 1);
-                            if (valor == 1){ // TRUCADO AUMENTOU PRA DEZ
+                            if (AUMENTARAM_APOSTA){ // TRUCADO AUMENTOU PRA DEZ
                                 multiplicador++; // Dez
                                 bzero(buffer, 1024);
                                 n = read(newsockfd[id], buffer, 1); // Decisao do Trucando
                                 valor = buffer[0] - '0';
                                 NEXT_PLAYER
                                 n = write(newsockfd[id], buffer, 1);
-                                if (valor == 1){ // TRUCANDO AUMENTOU PRA QUEDA
+                                if (AUMENTARAM_APOSTA){ // TRUCANDO AUMENTOU PRA QUEDA
                                     multiplicador++;
                                 }
                             }
                         }
-                        if(id != id_truco){
+                        if(id != id_truco){ // Volta pro jogador que pediu truco
                             PREVIOUS_PLAYER
-                            bzero(buffer, 1024);
-                            n = write(newsockfd[id], "JOGA", 4);
                         }
+                        bzero(buffer, 1024);
+                        n = write(newsockfd[id], "JOGA", 4);
 
                     }else if(RECUSADO){ // Se foi recusado o truco
                         recusado = 1;
@@ -449,10 +457,10 @@ int main(int argc, char *argv[]){
             bzero(buffer,1024);
 
             vet = Remove_Carta_Cliente(rodada_atual[id].valor, rodada_atual[id].naipe, cartas, vet, id); // Remove a carta que o cliente usou na rodada
-            if(qtd_jogadas == 4){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
+            if(FIM_RODADA){ // Se a rodada terminou (os 4 jogadores já jogaram cartas)
                 qtd = Atualiza_Vetor(qtd, qtd[0]-1, TOTAL_CONECTIONS); // Todos os clientes jogaram uma carta, reduzir uma pra cada
                 ganhador = Ganhador(rodada_atual[0],rodada_atual[1],rodada_atual[2],rodada_atual[3]); // Define quem ganhou a rodada, ou se empatou
-                if (ganhador != 5){ // Se houve um ganhador
+                if (HOUVE_GANHADOR){ // Se houve um ganhador
                     bzero(buffer,1024);
                     buffer[0] = ganhador + '0'; // ID do ganhador
                     buffer[1] = rodada_atual[ganhador-1].valor; // Valor da carta usada (A,2,3,...,K)
@@ -489,11 +497,10 @@ int main(int argc, char *argv[]){
                         multiplicador = 1;
                         rodada_trucada = 0;
                         truco = 0;
-                    }else{
+                    }else{ // Se a queda ainda nao foi definida
                         bzero(buffer, 1024);
                         strcpy(buffer, "GOIGN");
                         Status_Queda(newsockfd, buffer, 'D');
-                        rodada_trucada = 0;
                         skip = 0;
                         ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
                         bzero(buffer, 1024);
@@ -502,20 +509,22 @@ int main(int argc, char *argv[]){
                 }else{ // Se der empate
                     Send_All(newsockfd, "Emp", 3);
                     bzero(buffer,1024);
-                    if(num_rodada == 0){ // Empatou a primeira rodada
+                    if(EMPATE_1RODADA){ // Empatou a primeira rodada
                         rodadas[num_rodada] = 2; // Empate na primeira queda (ngm leva)
                         empate = 1; // O proximo cliente a ganhar a rodada vence a queda
                         Send_All(newsockfd, "1Rodada", 7);
                         bzero(buffer,1024);
+                        skip = 0;
+                        ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
                         printf("\nEmpate na rodada 1!\n\n");
                         num_rodada++;
                     }else{ // Empatou na segunda/terceira rodada
                         Send_All(newsockfd, "2Rodada", 7);
                         bzero(buffer,1024);
-                        if(rodadas[0] != 2){ // Se a primeira não deu empate, entao quem fez ela ganha a queda
+                        if(NAO_EMPATOU_PRIMEIRA){ // Se a primeira não deu empate, entao quem fez ela ganha a queda
                             bzero(buffer, 1024);
-                            buffer[0] = (rodadas[0] + 1) +  '0';
-                            buffer[1] = 'N';
+                            buffer[0] = (rodadas[0] + 1) + '0'; // Dupla ganhadora
+                            buffer[1] = (multiplicador * 2) + '0'; // qtd de pontos feitos
                             buffer[2] = 'D';
                             Send_All(newsockfd, buffer, 3);
                             verifica = rodadas[0];
@@ -549,7 +558,6 @@ int main(int argc, char *argv[]){
                         }
                     }
                 }
-                printf("\n");
                 qtd_jogadas = 0; // Zera as cartas pra próxima rodada
                 NEXT_PLAYER // Pula um cliente (o primeiro que jogou na rodada anterior, passa a ser o ultimo a jogar)
             }
@@ -583,6 +591,7 @@ int main(int argc, char *argv[]){
         NEXT_PLAYER // Muda qual cliente irá jogar agora
         n++;
     }
+
     FREE_ALL // Limpa o espaço de memória
     for (i = 0; i < TOTAL_CONECTIONS; i++){ // Finaliza as conexões dos clientes
         close(newsockfd[i]);
