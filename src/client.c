@@ -220,9 +220,15 @@ int main(int argc, char *argv[]){
     Print_Init();
     while(1){
         bzero(buffer,1024); 
-        n = read(sockfd, buffer, 4); // Espera (Wait), ou Joga (Play)?
+        n = read(sockfd, buffer, 4); // Espera (Wait), Joga (Play), Recusaram Truco (FUJA), Acabou o jogo(JOGO)
         if (n < 0){
             error("ERROR reading to socket");
+        }
+        if (strcmp(buffer, "JOGO") == 0){
+            bzero(buffer, 1024);
+            n = read(sockfd, buffer, 1);
+            printf("\nO jogo acabou, a dupla %c venceu dois jogos...\n\n",buffer[0]);
+            break;
         }
         if (strcmp(buffer, "FUJA") == 0){
             n = read(sockfd, buffer, 2);
@@ -235,9 +241,10 @@ int main(int argc, char *argv[]){
             recusado = 0;
             bzero(buffer,1024);
             // Pega a pontuação
-            n = read(sockfd, buffer, 2); // Placar
+            n = read(sockfd, buffer, 4); // Placar
             // Mostrar a mesa //
             PrintaMesa(buffer[0] - '0', buffer[1] - '0');
+            printf("Qtd de jogos:\nD1: %c\nD2: %c\n\n",buffer[2], buffer[3]);
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa
