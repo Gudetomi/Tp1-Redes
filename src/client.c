@@ -1,7 +1,7 @@
-/* Truco UFSJ multiplayer, cliente e servidor TCP
-    Antônio - 
-    Gustavo - 
-    Wagner Lancetti - wlancetti@gmail.com
+/* Truco UFSJ multiplayer, cliente TCP
+    Antônio Pereira de Souza Júnior -  - 2022103670
+    Gustavo Henrique Alves Detomi - gustavodetomi@gmail.com - 172050107
+    Wagner Lancetti - wlancetti@gmail.com - 2022103705
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -374,6 +374,8 @@ int main(int argc, char *argv[]){
                     }else if(RECUSADO){
                         recusado = 1;
                     }else if(CONTINUA){ // Mandou continuar
+                        bzero(buffer, 1024);
+                        n = read(sockfd, buffer, 4);
                         truco = 1;
                     }
                 }
@@ -408,7 +410,7 @@ int main(int argc, char *argv[]){
                             printf("\nEmpatou novamente...\n\n");
                             printf("\n\nAguardando para jogar...\n\n");
                         }else{
-                            printf("\n\nQuem ganhou a queda, e %c pontos, foi a dupla %c por ter ganhado a primeira rodada.\n\n", buffer[0], buffer[1]);
+                            printf("\n\nQuem ganhou a queda, e %c pontos, foi a dupla %c por ter ganhado a primeira rodada.\n\n", buffer[1], buffer[0]);
                             Verifica_Queda(sockfd, buffer);
                             printf("\n\nAguardando para jogar...\n\n");
                         }
