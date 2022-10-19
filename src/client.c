@@ -1,5 +1,5 @@
 /* Truco UFSJ multiplayer, cliente TCP
-    Antônio Pereira de Souza Júnior -  - 2022103670
+    Antônio Pereira de Souza Júnior - antonio258p@gmail.com - 2022103670
     Gustavo Henrique Alves Detomi - gustavodetomi@gmail.com - 172050107
     Wagner Lancetti - wlancetti@gmail.com - 2022103705
 */
@@ -87,7 +87,7 @@ void Print_Carta(Carta *cartas, int tam, int mesa){
     }
 }
 
-void PrintaMesa(int placar1, int placar2){
+void PrintaMesa(int placar1, int placar2, int jogos1, int jogos2){
     char p1[3], p2[3];
     sprintf(p1, "%d", placar1);
     sprintf(p2, "%d", placar2);
@@ -104,10 +104,12 @@ void PrintaMesa(int placar1, int placar2){
     printf("╔═╗┬  ┌─┐┌─┐┌─┐┬─┐\n");
     printf("╠═╝│  ├─┤│  ├─┤├┬┘\n");
     printf("╩  ┴─┘┴ ┴└─┘┴ ┴┴└─\n");
-    printf(" ____   ____\n");
-    printf("| %s | | %s |\n", p1, p2);
-    printf("| t1 | | t2 |\n");
-    printf(" \u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\n");
+    printf(" ______   ______\n");
+    printf("| t1   | | t2   |\n");
+    printf("|q: %s | |q: %s |\n", p1, p2);
+    printf("|j: %d  | |j: %d  |\n", jogos1, jogos2);
+    printf(" \u203E\u203E\u203E\u203E\u203E\u203E   \u203E\u203E\u203E\u203E\u203E\u203E\n");
+    printf("q: número de quedas ganhas\nj: número de jogos ganhas\n");
 
     printf("╔╦╗┌─┐┌─┐┌─┐\n");
     printf("║║║├┤ └─┐├─┤\n");
@@ -243,8 +245,7 @@ int main(int argc, char *argv[]){
             // Pega a pontuação
             n = read(sockfd, buffer, 4); // Placar
             // Mostrar a mesa //
-            PrintaMesa(buffer[0] - '0', buffer[1] - '0');
-            printf("Qtd de jogos:\nD1: %c\nD2: %c\n\n",buffer[2], buffer[3]);
+            PrintaMesa(buffer[0] - '0', buffer[1] - '0', buffer[2] - '0', buffer[3] - '0');
             bzero(buffer,1024);
             n = read(sockfd, buffer, 1); // Qtd de cartas na mesa
             qtd_mesa = buffer[0] - '0'; // Quantidade de cartas que estão na mesa

@@ -1,5 +1,5 @@
 /* Truco UFSJ multiplayer, servidor TCP
-    Antônio Pereira de Souza Júnior -  2022103670
+    Antônio Pereira de Souza Júnior - antonio258p@gmail.com - 2022103670
     Gustavo Henrique Alves Detomi - gustavodetomi@gmail.com - 172050107
     Wagner Lancetti - wlancetti@gmail.com - 2022103705
 */
