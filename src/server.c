@@ -30,7 +30,7 @@
 #define HOUVE_GANHADOR (ganhador != 5)
 #define EMPATE_1RODADA (num_rodada == 0)
 #define NAO_EMPATOU_PRIMEIRA (rodadas[0] != 2)
-
+#define JOGO_ACABOU (verifica != -1)
 
 
 typedef struct{ // Struct para guardar as cartas
@@ -135,14 +135,10 @@ int Ganhador(Carta carta1, Carta carta2, Carta carta3, Carta carta4){ // Funçã
         maior = 4;
         forca = carta4.forca;
     }
-    // Verifica se houve empate entre as cartas
-    if (maior == 1 && (forca == carta2.forca || forca == carta3.forca || forca == carta4.forca)){
+    // Verifica se houve empate entre as cartas dos adversarios
+    if ((maior == 1 || maior == 3) && (forca == carta2.forca || forca == carta4.forca)){
         maior = 5;
-    }else if(maior == 2 && (forca == carta1.forca || forca == carta3.forca || forca == carta4.forca)){
-        maior = 5;
-    }else if(maior == 3 && (forca == carta1.forca || forca == carta2.forca || forca == carta4.forca)){
-        maior = 5;
-    }else if(maior == 4 && (forca == carta1.forca || forca == carta2.forca || forca == carta3.forca)){
+    }else if((maior == 2 || maior == 4) && (forca == carta1.forca || forca == carta3.forca)){
         maior = 5;
     }
     // Retorna o id do cliente que usou a maior carta (1,2,3 ou 4), ou empate (5)
@@ -227,7 +223,7 @@ void Status_Queda(int *newsockfd, char *buffer, char id_dupla){
 }
 
 
-void Libera_Proximo_Cliente(int *newsockfd, int id, Carta *usadas, int qtd_jogadas, Carta *cartas, int *queda, int *qtd, int *vet){
+void Libera_Proximo_Cliente(int *newsockfd, int id, Carta *usadas, int qtd_jogadas, Carta *cartas, int *queda, int *qtd, int *vet, int *jogo){
     int n, i, j, indice;
     char buffer[1024];
     bzero(buffer,1024);
@@ -239,7 +235,9 @@ void Libera_Proximo_Cliente(int *newsockfd, int id, Carta *usadas, int qtd_jogad
     bzero(buffer,1024);
     buffer[0] = queda[0] + '0';
     buffer[1] = queda[1] + '0';
-    n = write(newsockfd[id], buffer, 2);
+    buffer[2] = jogo[0] + '0';
+    buffer[3] = jogo[1] + '0';
+    n = write(newsockfd[id], buffer, 4);
     
     // Mostrar a mesa pro cliente
     bzero(buffer,1024);
@@ -303,6 +301,28 @@ int Truco_Recusado(int *newsockfd, int *ids_truco, char *buffer, int num_rodada,
     return id;
 }
 
+int Verifica_Jogo(int *vet, int qtd){ // Verifica se alguma dupla já fez 12 pontos
+    int valor = -1;
+    if (vet[0] >= qtd){
+        printf("\n\nEntro aqui 1...\n\n");
+        valor = 0;
+    }else if(vet[1] >= qtd){
+        printf("\n\nEntro aqui 2...\n\n");
+        valor = 1;
+    }
+    return valor;
+
+}
+
+void Zera_Variaveis_Queda(int *empate, int *recusado, int*multiplicador, int*rodada_trucada, int* truco, int*skip){
+    *empate = 0;
+    *recusado = 0;
+    *multiplicador = 1;
+    *rodada_trucada = 0;
+    *truco = 0;
+    *skip = 0;
+}
+
 
 int main(int argc, char *argv[]){
     int sockfd, portno, newsockfd[TOTAL_CONECTIONS];
@@ -352,19 +372,29 @@ int main(int argc, char *argv[]){
     queda = (int*)calloc(2, sizeof(int)); // Duas duplas
     ids_truco = (int*)calloc(2, sizeof(int));
     jogo = (int*)calloc(2, sizeof(int)); // Duas duplas
+    jogo = Atualiza_Vetor(jogo, 0, 2);
     qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
     ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
 
     CLEAR_ROUND  // Zera as rodadas
     
     while(1){
+        verifica = Verifica_Jogo(jogo, 2);
+        if (JOGO_ACABOU){ // Se acabou o jogo geral (uma dupla já fez 2 jogos)
+            Send_All(newsockfd, "JOGO", 4);
+            bzero(buffer, 1024);
+            buffer[0] = (verifica + 1) + '0';
+            Send_All(newsockfd, buffer, 1);
+            break;
+        }
+
         if (JOGADOR_TRUCADO){ // Se for a rodada do jogador trucado
             n = write(newsockfd[id], "JOGA", 4);
             skip = 1;
             bzero(buffer, 1024);
             n = read(newsockfd[id], buffer, 1); // Cliente avisa que nao pode pedir truco
         }else{ // Se nao for a rodada do jogador trucado / nao houve truco na rodada
-            Libera_Proximo_Cliente(newsockfd, id, usadas, qtd_jogadas, cartas, queda, qtd, vet);
+            Libera_Proximo_Cliente(newsockfd, id, usadas, qtd_jogadas, cartas, queda, qtd, vet, jogo);
             skip = 0;
         }
 
@@ -394,15 +424,15 @@ int main(int argc, char *argv[]){
                     free(ids_truco);
                     ids_truco = (int*)calloc(2, sizeof(int));
                     ids_truco[0] = id;
-                    NEXT_PLAYER
+                    NEXT_PLAYER  // Trucado
                     ids_truco[1] = id;
-                    Libera_Proximo_Cliente(newsockfd, id, usadas, qtd_jogadas, cartas, queda, qtd, vet);
+                    Libera_Proximo_Cliente(newsockfd, id, usadas, qtd_jogadas, cartas, queda, qtd, vet, jogo);
                     bzero(buffer, 1024);
                     buffer[0] = truco + '0';
                     n = write(newsockfd[id], buffer, 1); // Avisa que esta trucado
                     bzero(buffer, 1024);
                     n = read(newsockfd[id], buffer, 8); // Verifica a escolha do cliente que foi chamado pro truco
-                    PREVIOUS_PLAYER
+                    PREVIOUS_PLAYER // Trucando
                     n = write(newsockfd[id], buffer, 8);
                     if (AUMENTAR){ // TRUCADO AUMENTOU PARA SEIS
                         multiplicador= 3; // Seis
@@ -471,7 +501,6 @@ int main(int argc, char *argv[]){
                     num_rodada++;
                     verifica = Analisa_Rodada(rodadas); // 0: dupla 1 /-/ 1: dupla 2s
                     if (verifica != -1 || empate == 1){ // Dupla ganhou a queda, ou empatou a primeira rodada (ganha quem fizer a próxima)
-                        printf("Alguem ganhou a queda...\n");
                         if(verifica != -1){ // Se ganhou sem empate
                             queda[verifica] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
                         }else{ // Se ganhou com empate
@@ -482,6 +511,12 @@ int main(int argc, char *argv[]){
                         strcpy(buffer, "QUEDA");
                         Status_Queda(newsockfd, "QUEDA", (verifica + 1) + '0');
                         bzero(buffer, 1024);
+                        verifica = Verifica_Jogo(queda, 12);
+                        if (JOGO_ACABOU){ // Se acabou o jogo (12 PTS)
+                            free(queda);
+                            queda = (int*)calloc(2, sizeof(int)); // Duas duplas
+                            jogo[verifica] += 1;
+                        }
                         CLEAR_ROUND // Limpa qual dupla ganhou cada rodada
                         RESET_ROUND // Libera o espaço de todos os vetores usados na rodada
                         num_rodada = 0; // Numero da rodada volta para o inicio
@@ -492,11 +527,7 @@ int main(int argc, char *argv[]){
                         usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
                         qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
                         ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
-                        empate = 0;
-                        recusado = 0;
-                        multiplicador = 1;
-                        rodada_trucada = 0;
-                        truco = 0;
+                        Zera_Variaveis_Queda(&empate, &recusado, &multiplicador, &rodada_trucada, &truco, &skip);
                     }else{ // Se a queda ainda nao foi definida
                         bzero(buffer, 1024);
                         strcpy(buffer, "GOIGN");
@@ -532,6 +563,12 @@ int main(int argc, char *argv[]){
                             bzero(buffer,1024);
                             strcpy(buffer, "QUEDA");
                             Status_Queda(newsockfd, buffer, (verifica + 1) + '0');
+                            verifica = Verifica_Jogo(queda, 12);
+                            if (JOGO_ACABOU){ // Se acabou o jogo (12 PTS)
+                                free(queda);
+                                queda = (int*)calloc(2, sizeof(int)); // Duas duplas
+                                jogo[verifica] += 1;
+                            }
                             CLEAR_ROUND
                             RESET_ROUND // Reseta valores para uma nova rodada
                             num_rodada = 0; // Numero da rodada volta para o inicio
@@ -543,12 +580,7 @@ int main(int argc, char *argv[]){
                             ids_truco = (int*)calloc(2, sizeof(int));
                             ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
                             printf("\nHouve ganhador na rodada 1. Logo finaliza!\n\n");
-                            empate = 0;
-                            skip = 0;
-                            truco = 0;
-                            recusado = 0;
-                            multiplicador = 1;
-                            rodada_trucada = 0;
+                            Zera_Variaveis_Queda(&empate, &recusado, &multiplicador, &rodada_trucada, &truco, &skip);
                         }else{
                             Send_All(newsockfd, "Emp", 3);
                             rodadas[num_rodada] = 2;
@@ -571,6 +603,12 @@ int main(int argc, char *argv[]){
             PREVIOUS_PLAYER
             id = Truco_Recusado(newsockfd, ids_truco, buffer, num_rodada, id);
             queda[id_dupla] += 2 * multiplicador; // multiplicador: Se foi com Truco, Seis, ...
+            verifica = Verifica_Jogo(queda, 12);
+            if (JOGO_ACABOU){ // Se acabou o jogo (12 PTS)
+                free(queda);
+                queda = (int*)calloc(2, sizeof(int)); // Duas duplas
+                jogo[verifica] += 1;
+            }
             CLEAR_ROUND
             RESET_ROUND // Reseta valores para uma nova rodada
             num_rodada = 0; // Numero da rodada volta para o inicio
@@ -581,12 +619,7 @@ int main(int argc, char *argv[]){
             qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
             ids_truco = (int*)calloc(2, sizeof(int));
             ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
-            truco = 0;
-            empate = 0;
-            skip = 0;
-            recusado = 0;
-            rodada_trucada = 0;
-            multiplicador = 1;
+            Zera_Variaveis_Queda(&empate, &recusado, &multiplicador, &rodada_trucada, &truco, &skip);
         }
         NEXT_PLAYER // Muda qual cliente irá jogar agora
         n++;
