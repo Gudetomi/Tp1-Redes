@@ -550,6 +550,7 @@ int main(int argc, char *argv[]){
                         printf("\nEmpate na rodada 1!\n\n");
                         num_rodada++;
                     }else{ // Empatou na segunda/terceira rodada
+                        empate++;
                         Send_All(newsockfd, "2Rodada", 7);
                         bzero(buffer,1024);
                         if(NAO_EMPATOU_PRIMEIRA){ // Se a primeira não deu empate, entao quem fez ela ganha a queda
@@ -584,9 +585,27 @@ int main(int argc, char *argv[]){
                         }else{
                             Send_All(newsockfd, "Emp", 3);
                             rodadas[num_rodada] = 2;
-                            num_rodada++;
                             bzero(buffer,1024);
                             printf("\nHouve empate! Rodada 2 ou 3.\n\n");
+                            num_rodada++;
+                            if(empate == 3){ // Se empatou as 3 rodadas (recomeça a rodada)
+                                buffer[0] = '1';
+                                CLEAR_ROUND
+                                RESET_ROUND // Reseta valores para uma nova rodada
+                                num_rodada = 0; // Numero da rodada volta para o inicio
+                                vet = Distribui_Cartas(); // Da 3 cartas para cada usuário (sem repetição)
+                                qtd = (int*)calloc(TOTAL_CONECTIONS, sizeof(int)); // cartas restantes de cada cliente
+                                rodada_atual = (Carta*)calloc(4, sizeof(Carta)); // Cartas de cada cliente na rodada
+                                usadas = (Carta*)calloc(4, sizeof(Carta)); // Cartas usadas na rodada
+                                qtd = Atualiza_Vetor(qtd, 3, TOTAL_CONECTIONS);
+                                ids_truco = (int*)calloc(2, sizeof(int));
+                                ids_truco = Atualiza_Vetor(ids_truco, -1, 2);
+                                printf("\nEmpatou 3 vezes seguidas...\n\n");
+                                Zera_Variaveis_Queda(&empate, &recusado, &multiplicador, &rodada_trucada, &truco, &skip);
+                            }else{ // Se empatou 1 ou 2 rodadas
+                                buffer[0] = '0';
+                            }
+                            Send_All(newsockfd, buffer, 1);
                         }
                     }
                 }
