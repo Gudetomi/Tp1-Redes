@@ -414,8 +414,15 @@ int main(int argc, char *argv[]){
                     }else{ // Empate na 2 ou 3 rodada
                         bzero(buffer, 1024);
                         n = read(sockfd, buffer, 3); // Recebe qual dupla ganhou e quantos pontos fez, ou avisando que empatou dnv
+
                         if (strcmp(buffer, "Emp") == 0){
+                            bzero(buffer, 1024);
+                            n = read(sockfd,buffer,1); // Verifica se houveram 3 empates seguidos
+                            valor = buffer[0] - '0';
                             printf("\nEmpatou novamente...\n\n");
+                            if(valor == 1){
+                                printf("\nHouveram 3 empates seguidos... Uma nova rodada se inicia! Nenhuma dupla ganhou pontos.\n");
+                            }
                             printf("\n\nAguardando para jogar...\n\n");
                         }else{
                             printf("\n\nQuem ganhou a queda, e %c pontos, foi a dupla %c por ter ganhado a primeira rodada.\n\n", buffer[1], buffer[0]);
