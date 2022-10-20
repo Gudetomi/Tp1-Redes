@@ -5,6 +5,23 @@
 */
 
 #include "truco.h"
+#define RECUSADO (strcmp(buffer, "RECUSADO") == 0)
+#define AUMENTAR (strcmp(buffer, "AUMENTAR") == 0)
+#define CONTINUA (strcmp(buffer, "CONTINUA") == 0)
+#define PEDIRAM_TRUCO (truco == 1)
+#define NAO_JOGOU_TRUCADO (skip == 0)
+#define JOGADOR_TRUCADO (ids_truco[1] == id)
+#define AUMENTARAM_APOSTA (valor == 1)
+#define FIM_RODADA (qtd_jogadas == 4)
+#define HOUVE_GANHADOR (ganhador != 5)
+#define EMPATE_1RODADA (num_rodada == 0)
+#define NAO_EMPATOU_PRIMEIRA (rodadas[0] != 2)
+#define JOGO_ACABOU (verifica != -1)
+#define NEXT_PLAYER (id = (id + 1) % TOTAL_CONECTIONS); // Passar para o próximo jogador
+#define PREVIOUS_PLAYER (id = (id % TOTAL_CONECTIONS) == 0 ? TOTAL_CONECTIONS - 1 : (id - 1) % TOTAL_CONECTIONS);  // Voltar pro jogador anteior
+#define CLEAR_ROUND rodadas[0] = -1; rodadas[1] = -1; rodadas[2] = -1; // Limpa os ganhadores dos rounds
+#define RESET_ROUND free(vet); free(qtd); free(rodada_atual); free(usadas); free(ids_truco); // Limpa os vetores de cartas dos clientes e quais já foram usadas no round
+#define FREE_ALL free(cartas); free(vet); free(qtd); free(rodada_atual); free(usadas); free(rodadas); free(queda); free(jogo); // Libera todo espaco de memoria
 
 struct Carta { // Struct para guardar as cartas
     char valor;
@@ -341,7 +358,8 @@ void play(int sockfd){
                             strcpy(buffer, "QUEDA");
                             Status_Queda(newsockfd, buffer, (verifica + 1) + '0');
                             verifica = Verifica_Jogo(queda, 12);
-                            if (JOGO_ACABOU){ // Se acabou o jogo (12 PTS)
+                            printf("%d aqui", verifica);
+                            if (verifica != -1){ // Se acabou o jogo (12 PTS)
                                 free(queda);
                                 queda = (int*)calloc(2, sizeof(int)); // Duas duplas
                                 jogo[verifica] += 1;

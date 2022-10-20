@@ -29,10 +29,10 @@ truco.o: src/truco.c src/truco.h
 	gcc -o bin/truco.o src/truco.c -c -Wall
 
 run_server:
-	./bin/server 5002
+	./bin/server 5004
 
 run_cliente:
-	./bin/cliente localhost 5002
+	./bin/cliente localhost 5004
 
 clean:
 	@rm ./bin/*
